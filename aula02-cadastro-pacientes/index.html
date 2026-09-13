@@ -39,8 +39,19 @@
 
     <h2 class="h4 mb-3">Pacientes cadastrados</h2>
 
+    <!-- Contadores por origem -->
+<div class="d-flex gap-3 mb-3">
+  <span class="badge bg-info" id="contador-json">0 do arquivo JSON</span>
+  <span class="badge bg-success" id="contador-manual">0 cadastrados manualmente</span>
+</div>
+
     <!-- Mensagem de carregamento, visível enquanto os dados não chegam -->
     <p id="carregando" class="text-muted">Carregando pacientes...</p>
+
+    <!-- Mensagem de erro amigável, escondida por padrão -->
+<div id="alerta-erro" class="alert alert-danger d-none" role="alert">
+  Ops! Não foi possível carregar os pacientes. Verifique sua conexão e tente novamente.
+</div>
 
     <table class="table table-striped">
       <thead>
