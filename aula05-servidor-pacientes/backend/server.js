@@ -21,10 +21,11 @@ function idValido(id) {
   return Number.isInteger(id) && id > 0;
 }
 
-// Tratamento de erros
+// Tratamento de erros do PostgreSQL
 function tratarErro(res, erro) {
   console.error(erro);
 
+  // Exercício 1 - Impedir e-mail duplicado
   if (erro.code === '23505') {
     return res.status(409).json({
       erro: 'Já existe um paciente com este e-mail'
@@ -37,19 +38,58 @@ function tratarErro(res, erro) {
 }
 
 // GET - Listar pacientes
+// Exercício 3 - Filtrar pacientes pelo nome
 app.get('/pacientes', async (req, res) => {
   try {
+    const nome = req.query.nome;
+
+    if (nome !== undefined) {
+      if (typeof nome !== 'string') {
+        return res.status(400).json({
+          erro: 'Filtro de nome inválido'
+        });
+      }
+
+      const resultado = await pool.query(
+        `SELECT ${COLUNAS}
+         FROM pacientes
+         WHERE nome ILIKE $1
+         ORDER BY id`,
+        [`%${nome}%`]
+      );
+
+      return res.status(200).json(resultado.rows);
+    }
+
     const resultado = await pool.query(
-      `SELECT ${COLUNAS} FROM pacientes ORDER BY id`
+      `SELECT ${COLUNAS}
+       FROM pacientes
+       ORDER BY id`
     );
 
-    res.json(resultado.rows);
+    res.status(200).json(resultado.rows);
   } catch (erro) {
     tratarErro(res, erro);
   }
 });
 
-// GET - Buscar por ID
+// Exercício 2 - Consultar total de pacientes
+// Esta rota precisa ficar antes de /pacientes/:id
+app.get('/pacientes/total', async (req, res) => {
+  try {
+    const resultado = await pool.query(
+      'SELECT COUNT(*) FROM pacientes'
+    );
+
+    res.status(200).json({
+      total: Number(resultado.rows[0].count)
+    });
+  } catch (erro) {
+    tratarErro(res, erro);
+  }
+});
+
+// GET - Buscar paciente por ID
 app.get('/pacientes/:id', async (req, res) => {
   const id = Number(req.params.id);
 
@@ -61,7 +101,9 @@ app.get('/pacientes/:id', async (req, res) => {
 
   try {
     const resultado = await pool.query(
-      `SELECT ${COLUNAS} FROM pacientes WHERE id = $1`,
+      `SELECT ${COLUNAS}
+       FROM pacientes
+       WHERE id = $1`,
       [id]
     );
 
@@ -71,7 +113,7 @@ app.get('/pacientes/:id', async (req, res) => {
       });
     }
 
-    res.json(resultado.rows[0]);
+    res.status(200).json(resultado.rows[0]);
   } catch (erro) {
     tratarErro(res, erro);
   }
@@ -122,7 +164,9 @@ app.put('/pacientes/:id', async (req, res) => {
   try {
     const resultado = await pool.query(
       `UPDATE pacientes
-       SET nome = $1, email = $2, nascimento = $3
+       SET nome = $1,
+           email = $2,
+           nascimento = $3
        WHERE id = $4
        RETURNING ${COLUNAS}`,
       [nome, email, nascimento, id]
@@ -134,7 +178,7 @@ app.put('/pacientes/:id', async (req, res) => {
       });
     }
 
-    res.json(resultado.rows[0]);
+    res.status(200).json(resultado.rows[0]);
   } catch (erro) {
     tratarErro(res, erro);
   }
